@@ -1,0 +1,10 @@
+
+@font-face {
+  font-family: 'opendyslexic';
+  src: url('http://dyslexicfonts.com/fonts/OpenDyslexic-Bold.ttf');
+  font-weight: bold;
+  font-style: normal;
+}
+
+@import "tailwindcss";
+
