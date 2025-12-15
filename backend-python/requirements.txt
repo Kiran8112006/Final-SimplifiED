@@ -6,3 +6,5 @@ google-generativeai
 httpx
 requests
 python-multipart
+gunicorn
+groq
