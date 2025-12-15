@@ -1,4 +1,4 @@
-VITE_API_URL=https://simplified-backend-xxx.onrender.com/api"""
+"""
 FastAPI backend with Groq API integration for SimplifiED
 Processes lecture transcriptions using Groq LLM - Fast & Free
 """
