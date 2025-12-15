@@ -5,6 +5,8 @@ import React, { useState, useRef } from 'react';
 import { Upload, X, FileAudio, Loader2 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+
 export default function AudioUpload({ onUploadComplete, onClose }) {
   const { isDark } = useTheme();
   const [selectedFile, setSelectedFile] = useState(null);
@@ -70,7 +72,7 @@ export default function AudioUpload({ onUploadComplete, onClose }) {
       setTranscriptionProgress('Processing audio with AI...');
 
       // Send to backend API
-      const response = await fetch('http://localhost:8000/api/transcribe-audio', {
+      const response = await fetch(`${API_BASE_URL}/transcribe-audio`, {
         method: 'POST',
         body: formData,
       });
