@@ -1,10 +1,9 @@
 fastapi==0.104.1
-uvicorn[standard]==0.24.0
+uvicorn==0.24.0
 python-dotenv==1.0.0
-firebase-admin==6.2.0
+firebase-admin==6.1.0
 groq==0.4.2
 httpx==0.25.2
 requests==2.31.0
 python-multipart==0.0.6
-pydantic==2.5.0
-pydantic-core==2.14.1
+pydantic==2.4.2
