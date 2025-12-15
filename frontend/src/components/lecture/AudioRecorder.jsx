@@ -14,13 +14,15 @@ export default function AudioRecorder({ onRecordingComplete, onTranscriptionUpda
   const { isRecording, audioBlob, duration, error, startRecording, stopRecording } = useAudioRecorder();
   const [transcription, setTranscription] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [speechApiAvailable, setSpeechApiAvailable] = useState(false);
   const recognitionRef = useRef(null);
   const accumulatedTranscriptRef = useRef(''); // Store accumulated text across restarts
 
   // Initialize Web Speech API
   useEffect(() => {
-    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      setSpeechApiAvailable(true);
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
@@ -61,13 +63,25 @@ export default function AudioRecorder({ onRecordingComplete, onTranscriptionUpda
           // Don't log - this is expected behavior when there's silence
           return;
         } else if (event.error === 'audio-capture') {
-          console.error('Microphone error - please check your microphone');
+          console.warn('⚠️ Microphone error - please check your microphone');
           setIsListening(false);
         } else if (event.error === 'not-allowed') {
-          console.error('Microphone permission denied - please allow microphone access');
+          console.warn('⚠️ Microphone permission denied - please allow microphone access');
           setIsListening(false);
+        } else if (event.error === 'network') {
+          console.warn('⚠️ Network error in speech recognition - retrying...');
+          // Auto-retry on network errors
+          if (isListening && isRecording && recognitionRef.current) {
+            setTimeout(() => {
+              try {
+                recognitionRef.current.start();
+              } catch (e) {
+                console.log('Retry failed:', e.message);
+              }
+            }, 1000);
+          }
         } else {
-          console.error('Speech recognition error:', event.error);
+          console.warn('⚠️ Speech recognition error:', event.error);
         }
       };
 
@@ -96,6 +110,9 @@ export default function AudioRecorder({ onRecordingComplete, onTranscriptionUpda
       recognitionRef.current.onstart = () => {
         console.log('Speech recognition active and listening...');
       };
+    } else {
+      setSpeechApiAvailable(false);
+      console.warn('⚠️ Speech Recognition API not available - live transcription will not work. Please use Chrome, Edge, or Firefox.');
     }
 
     return () => {
@@ -128,17 +145,20 @@ export default function AudioRecorder({ onRecordingComplete, onTranscriptionUpda
     }
     
     // Start speech recognition with a minimal delay after microphone starts
-    if (recognitionRef.current) {
+    if (recognitionRef.current && speechApiAvailable) {
       setTimeout(() => {
         try {
           setIsListening(true);
           recognitionRef.current.start();
           console.log('🎤 Speech recognition started - speak clearly into your microphone');
         } catch (e) {
-          console.error('Could not start speech recognition:', e.message);
+          console.warn('Could not start speech recognition:', e.message);
+          console.warn('This might be a temporary issue. Your audio is still being recorded.');
           setIsListening(false);
         }
       }, 200); // Minimal delay for faster response
+    } else {
+      console.log('💾 Recording started - speech recognition not available but audio will be saved');
     }
   };
   // Handle stop recording
@@ -234,6 +254,13 @@ export default function AudioRecorder({ onRecordingComplete, onTranscriptionUpda
       {error && (
         <div className="bg-red-500/20 border border-red-500/50 text-red-200 px-4 py-2 rounded-lg">
           {error}
+        </div>
+      )}
+
+      {/* Speech API Not Available Warning */}
+      {!speechApiAvailable && !isRecording && (
+        <div className="bg-yellow-500/20 border border-yellow-500/50 text-yellow-200 px-4 py-2 rounded-lg text-sm text-center">
+          ℹ️ Live transcription not available in your browser. Please use Chrome, Edge, or Firefox for speech-to-text.
         </div>
       )}
       

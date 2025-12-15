@@ -12,12 +12,13 @@ import { getStorage } from 'firebase/storage';
 // Firebase configuration object
 // Keys: apiKey, authDomain, projectId, storageBucket, messagingSenderId, appId
 const firebaseConfig = {
-  apiKey: "AIzaSyAq0Nm9ce87fMJCbcGecKRl46ZxttVm9MU",
-  authDomain: "simplified-code-lunatics.firebaseapp.com",
-  projectId: "simplified-code-lunatics",
-  storageBucket: "simplified-code-lunatics.firebasestorage.app",
-  messagingSenderId: "349702057262",
-  appId: "1:349702057262:web:c331afe0e6e6c2c1cc5ebf"
+  apiKey: "AIzaSyD2KGIaO7IOaGnPdyc28thrMZIXKb5sgmk",
+  authDomain: "simplified-e4089.firebaseapp.com",
+  projectId: "simplified-e4089",
+  storageBucket: "simplified-e4089.firebasestorage.app",
+  messagingSenderId: "994877954242",
+  appId: "1:994877954242:web:dfca2f88d2dabe7820c35b",
+  measurementId: "G-3XBW0W3L35"
 };
 
 // Initialize Firebase app with config

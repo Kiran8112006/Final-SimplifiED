@@ -1,6 +1,6 @@
 """
-FastAPI backend with Ollama integration for SimplifiED
-Processes lecture transcriptions using local Ollama LLM
+FastAPI backend with Groq API integration for SimplifiED
+Processes lecture transcriptions using Groq LLM - Fast & Free
 """
 
 from fastapi import FastAPI, HTTPException, File, UploadFile
@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import firebase_admin
 from firebase_admin import credentials, firestore
-import ollama
+from groq import Groq
 from datetime import datetime
 import os
 from dotenv import load_dotenv
@@ -17,6 +17,13 @@ import time
 
 # Load environment variables
 load_dotenv()
+
+# Initialize Groq API
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+if not GROQ_API_KEY:
+    raise ValueError("GROQ_API_KEY environment variable is not set. Please add it to your .env file.")
+groq_client = Groq(api_key=GROQ_API_KEY)
+GROQ_MODEL = "llama-3.3-70b-versatile"  # Using Llama 3.3 - latest & most capable
 
 # Initialize FastAPI
 app = FastAPI(title="SimplifiED Backend")
@@ -47,39 +54,59 @@ class LectureUpdate(BaseModel):
     mindMap: str = None
     summary: str = None
 
-# Ollama model name
-OLLAMA_MODEL = "llama3.2:3b"
-
 @app.get("/")
 async def root():
-    return {"message": "SimplifiED Backend with Ollama", "status": "running"}
+    return {"message": "SimplifiED Backend with Groq", "status": "running"}
 
 @app.get("/health")
 async def health_check():
-    return {"status": "ok", "ollama_model": OLLAMA_MODEL}
+    return {"status": "ok", "groq_model": GROQ_MODEL}
 
-def generate_with_ollama(prompt: str, system: str = None) -> str:
-    """Generate text using Ollama"""
+@app.get("/api/debug/lectures")
+async def debug_all_lectures():
+    """Debug endpoint - show all lectures in Firestore"""
     try:
-        messages = []
-        if system:
-            messages.append({"role": "system", "content": system})
-        messages.append({"role": "user", "content": prompt})
-        
-        response = ollama.chat(
-            model=OLLAMA_MODEL,
-            messages=messages,
-            options={"temperature": 0.7}
-        )
-        return response['message']['content']
+        all_docs = db.collection("lectures").stream()
+        lectures = []
+        for doc in all_docs:
+            lectures.append({"id": doc.id, **doc.to_dict()})
+        return {"total": len(lectures), "lectures": lectures}
     except Exception as e:
-        print(f"Ollama error: {e}")
-        raise HTTPException(status_code=500, detail=f"Ollama processing failed: {str(e)}")
+        return {"error": str(e)}
+
+def generate_with_groq(prompt: str, system: str = None) -> str:
+    """Generate text using Groq API"""
+    try:
+        system_message = system or "You are a helpful assistant."
+        
+        print(f"  Calling Groq API with {len(prompt)} characters...")
+        
+        message = groq_client.chat.completions.create(
+            model=GROQ_MODEL,
+            max_tokens=2048,
+            temperature=0.7,
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        
+        response_text = message.choices[0].message.content
+        print(f"  ✓ Groq response received: {len(response_text)} characters")
+        return response_text
+    except Exception as e:
+        print(f"  ✗✗✗ Groq API Error: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise Exception(f"Groq processing failed: {str(e)}")
 
 @app.post("/api/lectures")
 async def create_lecture(lecture: LectureCreate):
     """Create a new lecture with transcription"""
     try:
+        print(f"\n💾 Creating lecture for user: {lecture.userId}")
+        print(f"   Transcription length: {len(lecture.transcription)} characters")
+        
         lecture_data = {
             "userId": lecture.userId,
             "transcription": lecture.transcription,
@@ -94,8 +121,10 @@ async def create_lecture(lecture: LectureCreate):
         doc_ref = db.collection("lectures").document()
         doc_ref.set(lecture_data)
         
+        print(f"✓ Lecture created with ID: {doc_ref.id}")
         return {"id": doc_ref.id, **lecture_data}
     except Exception as e:
+        print(f"❌ Error creating lecture: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/lectures/{lecture_id}")
@@ -117,105 +146,107 @@ async def get_lecture(lecture_id: str):
 async def get_latest_lecture(user_id: str):
     """Get the latest lecture for a user"""
     try:
-        docs = db.collection("lectures")\
-            .where("userId", "==", user_id)\
-            .order_by("createdAt", direction=firestore.Query.DESCENDING)\
-            .limit(1)\
-            .stream()
+        print(f"\n📂 Fetching latest lecture for user: {user_id}")
         
-        for doc in docs:
+        # Firestore .where() + .order_by() requires composite index
+        # Workaround: Filter and sort in Python instead
+        all_docs = db.collection("lectures").stream()
+        user_lectures = []
+        
+        for doc in all_docs:
             data = doc.to_dict()
-            return {"id": doc.id, **data}
+            if data.get("userId") == user_id:
+                user_lectures.append({"id": doc.id, "data": data})
         
-        raise HTTPException(status_code=404, detail="No lectures found")
+        if not user_lectures:
+            print(f"⚠️ No lectures found for user: {user_id}")
+            raise HTTPException(status_code=404, detail="No lectures found")
+        
+        # Sort by createdAt descending and get the latest
+        user_lectures.sort(
+            key=lambda x: x["data"].get("createdAt", ""),
+            reverse=True
+        )
+        
+        latest = user_lectures[0]
+        print(f"✓ Found {len(user_lectures)} lecture(s), returning latest: {latest['id']}")
+        return {"id": latest["id"], **latest["data"]}
+        
     except HTTPException:
         raise
     except Exception as e:
+        print(f"❌ Error fetching latest lecture: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/lectures/{lecture_id}/process")
 async def process_lecture(lecture_id: str):
-    """Process lecture transcription through Ollama to generate all outputs in parallel"""
+    """Process lecture transcription through Gemini to generate all outputs"""
     try:
+        print(f"\n=== Starting processing for lecture {lecture_id} ===")
+        
         # Get the lecture
         doc = db.collection("lectures").document(lecture_id).get()
         if not doc.exists:
+            print(f"ERROR: Lecture {lecture_id} not found")
             raise HTTPException(status_code=404, detail="Lecture not found")
         
         data = doc.to_dict()
         transcription = data.get("transcription", "")
         
         if not transcription:
+            print(f"ERROR: No transcription in lecture {lecture_id}")
             raise HTTPException(status_code=400, detail="No transcription to process")
         
-        print(f"Processing lecture {lecture_id} in parallel...")
+        print(f"Processing {len(transcription)} characters of transcription...")
         
-        # Import asyncio for parallel processing
-        import asyncio
-        from concurrent.futures import ThreadPoolExecutor
+        # Generate each output sequentially (simpler and more reliable)
+        try:
+            print("Generating breakdown text...")
+            breakdown_text = generate_with_groq(
+                f"Break down this text by splitting EVERY word into syllables using hyphens. Keep punctuation and flow.\n\nText: {transcription}\n\nSyllable breakdown:",
+                "You are an expert in breaking words into syllables."
+            )
+            print(f"✓ Breakdown complete ({len(breakdown_text)} chars)")
+        except Exception as e:
+            print(f"✗ Breakdown failed: {e}")
+            breakdown_text = "Error generating breakdown"
         
-        # Define all prompts
-        breakdown_prompt = f"""Break down this text by splitting EVERY word into syllables using hyphens. Keep the sentence structure intact.
-
-Example: "Photosynthesis is the process" → "Pho-to-syn-the-sis is the pro-cess"
-
-Rules:
-- Split EVERY word into syllables with hyphens
-- Keep punctuation and capitalization
-- Maintain the original sentence flow
-- Short words (1-2 syllables) can stay as is if obvious
-
-Transcription: {transcription}
-
-Syllable breakdown:"""
+        try:
+            print("Generating detailed steps...")
+            detailed_steps = generate_with_groq(
+                f"Break down this lecture into numbered steps (1, 2, 3, etc). Each step should be clear and actionable.\n\nLecture: {transcription}\n\nSteps:",
+                "You are an expert educator."
+            )
+            print(f"✓ Steps complete ({len(detailed_steps)} chars)")
+        except Exception as e:
+            print(f"✗ Steps failed: {e}")
+            detailed_steps = "Error generating steps"
         
-        steps_prompt = f"""Break down this lecture into clear, numbered steps. Each step should be action-oriented, easy to follow, and in logical order. Keep it concise.
-
-Transcription: {transcription}
-
-Step-by-step breakdown:"""
+        try:
+            print("Generating mind map...")
+            mind_map = generate_with_groq(
+                f"Create a brief mind map of the key points. Use max 5-7 points.\n\nContent: {transcription}\n\nMind map:",
+                "You are an expert in creating concise mind maps."
+            )
+            print(f"✓ Mind map complete ({len(mind_map)} chars)")
+        except Exception as e:
+            print(f"✗ Mind map failed: {e}")
+            mind_map = "Error generating mind map"
         
-        mindmap_prompt = f"""Create a BRIEF text-based mind map. Use ONLY the most important points:
-
-Main Topic
-├─ Key Point 1
-├─ Key Point 2
-└─ Key Point 3
-
-Keep it SHORT - maximum 5-7 points total. Be concise.
-
-Transcription: {transcription}
-
-Brief mind map:"""
+        try:
+            print("Generating summary...")
+            summary = generate_with_groq(
+                f"Provide a 3-4 sentence summary of this content.\n\nContent: {transcription}\n\nSummary:",
+                "You are an expert summarizer."
+            )
+            print(f"✓ Summary complete ({len(summary)} chars)")
+        except Exception as e:
+            print(f"✗ Summary failed: {e}")
+            summary = "Error generating summary"
         
-        summary_prompt = f"""Provide a concise 3-4 sentence summary with main topic, key points, and conclusion.
-
-Transcription: {transcription}
-
-Summary:"""
-        
-        # Function to run Ollama in thread pool
-        def generate_async(prompt: str, system: str):
-            return generate_with_ollama(prompt, system)
-        
-        # Execute all 4 prompts in parallel using ThreadPoolExecutor
-        loop = asyncio.get_event_loop()
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            tasks = [
-                loop.run_in_executor(executor, generate_async, breakdown_prompt, 
-                    "You are an expert in breaking words into syllables for reading assistance."),
-                loop.run_in_executor(executor, generate_async, steps_prompt,
-                    "You are an expert educator who creates clear, sequential learning materials."),
-                loop.run_in_executor(executor, generate_async, mindmap_prompt,
-                    "You are an expert in creating brief, focused mind maps. Be extremely concise."),
-                loop.run_in_executor(executor, generate_async, summary_prompt,
-                    "You are an expert in creating clear, concise academic summaries.")
-            ]
-            
-            results = await asyncio.gather(*tasks)
-            breakdown_text, detailed_steps, mind_map, summary = results
-        
-        print("All processing complete! Updating Firestore...")
+        print("Updating Firestore...")
         
         # Update Firestore
         update_data = {
@@ -227,8 +258,9 @@ Summary:"""
         }
         
         db.collection("lectures").document(lecture_id).update(update_data)
+        print(f"✓ Firestore updated successfully")
+        print(f"=== Processing complete for {lecture_id} ===\n")
         
-        print("Done!")
         return {
             "id": lecture_id,
             "simpleText": breakdown_text,
@@ -240,8 +272,10 @@ Summary:"""
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error processing lecture: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"\n✗✗✗ ERROR in process_lecture: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 
 @app.patch("/api/lectures/{lecture_id}")
 async def update_lecture(lecture_id: str, updates: LectureUpdate):
@@ -271,18 +305,29 @@ async def delete_lecture(lecture_id: str):
 async def get_user_lectures(user_id: str):
     """Get all lectures for a user"""
     try:
-        docs = db.collection("lectures")\
-            .where("userId", "==", user_id)\
-            .order_by("createdAt", direction=firestore.Query.DESCENDING)\
-            .stream()
+        print(f"\n📂 Fetching all lectures for user: {user_id}")
         
-        lectures = []
-        for doc in docs:
+        # Filter and sort in Python to avoid Firestore composite index requirement
+        all_docs = db.collection("lectures").stream()
+        user_lectures = []
+        
+        for doc in all_docs:
             data = doc.to_dict()
-            lectures.append({"id": doc.id, **data})
+            if data.get("userId") == user_id:
+                user_lectures.append({"id": doc.id, **data})
         
-        return lectures
+        # Sort by createdAt descending
+        user_lectures.sort(
+            key=lambda x: x.get("createdAt", ""),
+            reverse=True
+        )
+        
+        print(f"✓ Found {len(user_lectures)} lecture(s) for user {user_id}")
+        return user_lectures
     except Exception as e:
+        print(f"❌ Error fetching user lectures: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/transcribe-audio")
@@ -335,7 +380,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
         
         # Poll for transcription completion
         polling_endpoint = f"https://api.assemblyai.com/v2/transcript/{transcript_id}"
-        max_attempts = 60  # 5 minutes max
+        max_attempts = 120  # 10 minutes max
         attempt = 0
         
         while attempt < max_attempts:
@@ -343,10 +388,16 @@ async def transcribe_audio(file: UploadFile = File(...)):
             transcription_result = polling_response.json()
             
             if transcription_result["status"] == "completed":
+                transcription_text = transcription_result.get("text", "")
+                if not transcription_text:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="No speech detected in the audio file. Please try a different file with clear speech or use manual input."
+                    )
                 return {
-                    "transcription": transcription_result["text"],
+                    "transcription": transcription_text,
                     "confidence": transcription_result.get("confidence", 0),
-                    "words": len(transcription_result["text"].split())
+                    "words": len(transcription_text.split())
                 }
             elif transcription_result["status"] == "error":
                 raise HTTPException(

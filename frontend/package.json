@@ -16,6 +16,8 @@
     "firebase": "^12.6.0",
     "framer-motion": "^12.23.26",
     "gsap": "^3.14.1",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.4",
     "lucide-react": "^0.560.0",
     "motion": "^12.23.26",
     "ogl": "^1.0.11",

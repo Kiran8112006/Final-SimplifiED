@@ -9,7 +9,7 @@ import Navbar from '../components/layout/Navbar';
 import Silk from '../components/common/Silk';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { Trash2, Volume2, VolumeX, Pause, Play } from 'lucide-react';
+import { Trash2, Volume2, VolumeX, Pause, Play, Download } from 'lucide-react';
 import useTextToSpeech from '../hooks/useTextToSpeech';
 import {
   createLecture,
@@ -18,6 +18,7 @@ import {
   processLecture,
   deleteLecture
 } from '../services/backendApi';
+import { generateLecturePDF } from '../services/pdfExport';
 
 export default function LecturePage() {
   const { isDark } = useTheme();
@@ -38,6 +39,7 @@ export default function LecturePage() {
   const [loadingSteps, setLoadingSteps] = useState(false);
   const [loadingMindMap, setLoadingMindMap] = useState(false);
   const [loadingSummary, setLoadingSummary] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
 
   const tabs = [
     { id: 'live', label: 'Live Transcription', icon: '🎤️' },
@@ -121,27 +123,38 @@ export default function LecturePage() {
 
   // Load a specific lecture by ID or the latest lecture
   const loadLatestLecture = useCallback(async (lectureId = null) => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.warn('⚠️ Cannot load lectures - user not logged in');
+      return;
+    }
     
+    console.log('📂 Loading lectures for user:', currentUser.uid);
+    console.log('📂 User display name:', currentUser.displayName);
+    console.log('📂 User email:', currentUser.email);
     setIsLoadingLecture(true);
     try {
       let lecture;
       if (lectureId) {
+        console.log('📂 Fetching specific lecture:', lectureId);
         lecture = await getLecture(lectureId);
       } else {
+        console.log('📂 Fetching latest lecture...');
         lecture = await getLatestLecture(currentUser.uid);
       }
       
       if (lecture) {
+        console.log('✓ Lecture loaded successfully:', lecture.id);
         setCurrentLectureId(lecture.id);
         setLiveTranscription(lecture.transcription || '');
         setBreakdownText(lecture.simpleText || '');
         setDetailedSteps(lecture.detailedSteps || '');
         setMindMap(lecture.mindMap || '');
         setSummary(lecture.summary || '');
+      } else {
+        console.log('ℹ️ No lecture found');
       }
     } catch (error) {
-      console.error('Error loading lecture:', error);
+      console.error('❌ Error loading lecture:', error);
     } finally {
       setIsLoadingLecture(false);
     }
@@ -199,6 +212,35 @@ export default function LecturePage() {
     }
   };
 
+  // Export lecture to PDF
+  const handleExportPDF = async () => {
+    if (!currentLectureId) {
+      alert('No lecture to export. Please record or select a lecture first.');
+      return;
+    }
+
+    setIsExportingPDF(true);
+    try {
+      const lectureData = {
+        id: currentLectureId,
+        transcription: liveTranscription,
+        simpleText: breakdownText,
+        detailedSteps: detailedSteps,
+        mindMap: mindMap,
+        summary: summary,
+        createdAt: new Date().toISOString()
+      };
+
+      const result = await generateLecturePDF(lectureData);
+      console.log('PDF exported successfully:', result.fileName);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Failed to export PDF. Please try again.');
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
   // Process transcription through backend API (memoized)
   const processTranscription = useCallback(async (lectureId) => {
     if (!lectureId) return;
@@ -240,12 +282,14 @@ export default function LecturePage() {
   // Handle recording complete - save to Firestore and auto-process
   const handleRecordingComplete = useCallback(async (audioBlob, transcription) => {
     if (!currentUser) {
+      console.warn('⚠️ User not logged in - cannot save lecture');
       setProcessingStage('Please log in to save your recording');
       setTimeout(() => setProcessingStage(''), 3000);
       return;
     }
 
     if (!transcription || !transcription.trim()) {
+      console.warn('⚠️ No transcription text provided');
       setProcessingStage('No speech detected. Please try speaking again.');
       setTimeout(() => setProcessingStage(''), 3000);
       return;
@@ -253,16 +297,19 @@ export default function LecturePage() {
 
     try {
       // Save transcription to Firestore
+      console.log('💾 Saving transcription (' + transcription.length + ' chars) for user:', currentUser.uid);
       setProcessingStage('Saving transcription...');
       const lectureId = await createLecture(currentUser.uid, transcription);
+      console.log('✓ Lecture saved with ID:', lectureId);
       setCurrentLectureId(lectureId);
       
       // Auto-trigger AI processing immediately after saving
       setProcessingStage('Processing with AI...');
       await processTranscription(lectureId);
+      console.log('✓ Lecture processing complete');
       
     } catch (error) {
-      console.error('Error saving or processing transcription:', error);
+      console.error('❌ Error saving or processing transcription:', error);
       alert('Failed to save transcription. Please try again.');
     }
   }, [currentUser, processTranscription]);
@@ -431,8 +478,42 @@ export default function LecturePage() {
                 Record your lecture and get AI-powered transcription and simplification
               </p>
             </div>
-            {/* Delete Button */}
+            {/* Action Buttons */}
             {(liveTranscription || breakdownText || detailedSteps || mindMap || summary) && (
+              <div className="flex gap-3">
+                {/* Export PDF Button */}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleExportPDF}
+                  disabled={isExportingPDF}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
+                    isDark 
+                      ? 'bg-blue-600/40 hover:bg-blue-500/60 text-blue-200 border border-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed' 
+                      : 'bg-blue-100 hover:bg-blue-200 text-blue-700 border border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed'
+                  }`}
+                >
+                  <Download className="w-5 h-5" />
+                  {isExportingPDF ? 'Exporting...' : 'Export PDF'}
+                </motion.button>
+
+                {/* Delete Button */}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleClearLecture}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition-all ${
+                    isDark 
+                      ? 'bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/50' 
+                      : 'bg-red-100 hover:bg-red-200 text-red-700 border border-red-300'
+                  }`}
+                >
+                  <Trash2 className="w-5 h-5" />
+                  Delete Lecture
+                </motion.button>
+              </div>
+            )}
+            {!(liveTranscription || breakdownText || detailedSteps || mindMap || summary) && (
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}

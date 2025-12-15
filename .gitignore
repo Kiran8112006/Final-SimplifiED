@@ -1,0 +1,65 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+*.swp
+*.swo
+
+# Backend Python
+backend-python/.venv/
+backend-python/venv/
+backend-python/__pycache__/
+backend-python/*.pyc
+backend-python/*.pyo
+backend-python/.pytest_cache/
+backend-python/.coverage
+backend-python/htmlcov/
+
+# Backend Node
+backend/node_modules/
+backend/dist/
+backend/build/
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+.classpath
+.project
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime data
+.cache/
+.coverage
+.pytest_cache/
+
+# Firebase
+serviceAccountKey.json
+credentials.json
+
+# Misc
+.DS_Store
+*.pem

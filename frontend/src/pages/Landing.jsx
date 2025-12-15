@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
 import Button from '../components/common/Button';
 import Silk from '../components/common/Silk';
-import { Mic, Bot, BookOpen, Accessibility, Sparkles, Download } from 'lucide-react';
+import { Mic, Bot, BookOpen, Accessibility, Sparkles, Download, Linkedin } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { motion, useInView } from 'framer-motion';
@@ -442,6 +442,239 @@ export default function Landing() {
               </Link>
             </motion.div>
           </motion.div>
+        </div>
+      </section>
+      
+      {/* Team Section */}
+      <section className="relative py-24 md:py-32 px-6 sm:px-8 md:px-12 overflow-hidden transition-colors duration-300">
+        <div className="relative z-10 max-w-6xl mx-auto">
+          {/* Section Header */}
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <h2 className={`text-4xl sm:text-5xl md:text-6xl font-black mb-6 leading-tight drop-shadow-lg ${
+              isDark ? 'text-white' : 'text-gray-900'
+            }`}>
+              Meet Our Team
+            </h2>
+            <p className={`text-lg md:text-xl max-w-3xl mx-auto ${
+              isDark ? 'text-gray-300' : 'text-gray-700'
+            }`}>
+              Building SimplifiED with passion, expertise, and dedication to revolutionize learning
+            </p>
+          </motion.div>
+
+          {/* Team Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Team Member 1 - Hemsagar */}
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.95 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0 }}
+              whileHover={{ y: -10, scale: 1.05 }}
+              className={`group rounded-2xl backdrop-blur-md border-2 p-8 text-center transition-all duration-300 cursor-pointer ${
+                isDark 
+                  ? 'bg-gradient-to-br from-blue-900/40 to-purple-900/40 border-blue-500/30 hover:border-blue-400/60 hover:bg-gradient-to-br hover:from-blue-900/60 hover:to-purple-900/60 shadow-lg hover:shadow-blue-500/30'
+                  : 'bg-gradient-to-br from-blue-100/50 to-purple-100/50 border-blue-300/40 hover:border-blue-400/70 hover:bg-gradient-to-br hover:from-blue-100/80 hover:to-purple-100/80'
+              }`}
+            >
+              {/* Avatar Circle */}
+              <motion.div
+                whileHover={{ rotate: 360 }}
+                transition={{ duration: 0.6 }}
+                className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-3xl font-bold shadow-lg"
+              >
+                HB
+              </motion.div>
+
+              {/* Name */}
+              <h3 className={`text-xl font-black mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                Hemsagar B C
+              </h3>
+
+              {/* Role */}
+              <p className={`text-sm font-semibold mb-4 ${
+                isDark ? 'text-blue-300' : 'text-blue-700'
+              }`}>
+                Backend Developer
+              </p>
+
+              {/* LinkedIn Button */}
+              <motion.a
+                href="https://www.linkedin.com/in/hemsagar-b-c-b2610a318?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app"
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                  isDark
+                    ? 'bg-blue-600/60 hover:bg-blue-500 text-white'
+                    : 'bg-blue-500/60 hover:bg-blue-600 text-white'
+                }`}
+              >
+                <Linkedin size={16} />
+                LinkedIn
+              </motion.a>
+            </motion.div>
+
+            {/* Team Member 2 - Pushkar */}
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.95 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              whileHover={{ y: -10, scale: 1.05 }}
+              className={`group rounded-2xl backdrop-blur-md border-2 p-8 text-center transition-all duration-300 cursor-pointer ${
+                isDark 
+                  ? 'bg-gradient-to-br from-purple-900/40 to-pink-900/40 border-purple-500/30 hover:border-purple-400/60 hover:bg-gradient-to-br hover:from-purple-900/60 hover:to-pink-900/60 shadow-lg hover:shadow-purple-500/30'
+                  : 'bg-gradient-to-br from-purple-100/50 to-pink-100/50 border-purple-300/40 hover:border-purple-400/70 hover:bg-gradient-to-br hover:from-purple-100/80 hover:to-pink-100/80'
+              }`}
+            >
+              {/* Avatar Circle */}
+              <motion.div
+                whileHover={{ rotate: 360 }}
+                transition={{ duration: 0.6 }}
+                className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-3xl font-bold shadow-lg"
+              >
+                PR
+              </motion.div>
+
+              {/* Name */}
+              <h3 className={`text-xl font-black mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                Pushkar R Deshpande
+              </h3>
+
+              {/* Role */}
+              <p className={`text-sm font-semibold mb-4 ${
+                isDark ? 'text-purple-300' : 'text-purple-700'
+              }`}>
+                Frontend Developer
+              </p>
+
+              {/* LinkedIn Button */}
+              <motion.a
+                href="https://www.linkedin.com/in/pushkar-r-deshpande-510177334?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app"
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                  isDark
+                    ? 'bg-purple-600/60 hover:bg-purple-500 text-white'
+                    : 'bg-purple-500/60 hover:bg-purple-600 text-white'
+                }`}
+              >
+                <Linkedin size={16} />
+                LinkedIn
+              </motion.a>
+            </motion.div>
+
+            {/* Team Member 3 - Anurag */}
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.95 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              whileHover={{ y: -10, scale: 1.05 }}
+              className={`group rounded-2xl backdrop-blur-md border-2 p-8 text-center transition-all duration-300 cursor-pointer ${
+                isDark 
+                  ? 'bg-gradient-to-br from-cyan-900/40 to-blue-900/40 border-cyan-500/30 hover:border-cyan-400/60 hover:bg-gradient-to-br hover:from-cyan-900/60 hover:to-blue-900/60 shadow-lg hover:shadow-cyan-500/30'
+                  : 'bg-gradient-to-br from-cyan-100/50 to-blue-100/50 border-cyan-300/40 hover:border-cyan-400/70 hover:bg-gradient-to-br hover:from-cyan-100/80 hover:to-blue-100/80'
+              }`}
+            >
+              {/* Avatar Circle */}
+              <motion.div
+                whileHover={{ rotate: 360 }}
+                transition={{ duration: 0.6 }}
+                className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white text-3xl font-bold shadow-lg"
+              >
+                AR
+              </motion.div>
+
+              {/* Name */}
+              <h3 className={`text-xl font-black mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                Anurag V Rao
+              </h3>
+
+              {/* Role */}
+              <p className={`text-sm font-semibold mb-4 ${
+                isDark ? 'text-cyan-300' : 'text-cyan-700'
+              }`}>
+                Backend Developer
+              </p>
+
+              {/* Email Button (No LinkedIn) */}
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                  isDark
+                    ? 'bg-cyan-600/60 hover:bg-cyan-500 text-white'
+                    : 'bg-cyan-500/60 hover:bg-cyan-600 text-white'
+                }`}
+              >
+                <Sparkles size={16} />
+                Coming Soon
+              </motion.button>
+            </motion.div>
+
+            {/* Team Member 4 - Kiran */}
+            <motion.div
+              initial={{ opacity: 0, y: 50, scale: 0.95 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+              whileHover={{ y: -10, scale: 1.05 }}
+              className={`group rounded-2xl backdrop-blur-md border-2 p-8 text-center transition-all duration-300 cursor-pointer ${
+                isDark 
+                  ? 'bg-gradient-to-br from-indigo-900/40 to-blue-900/40 border-indigo-500/30 hover:border-indigo-400/60 hover:bg-gradient-to-br hover:from-indigo-900/60 hover:to-blue-900/60 shadow-lg hover:shadow-indigo-500/30'
+                  : 'bg-gradient-to-br from-indigo-100/50 to-blue-100/50 border-indigo-300/40 hover:border-indigo-400/70 hover:bg-gradient-to-br hover:from-indigo-100/80 hover:to-blue-100/80'
+              }`}
+            >
+              {/* Avatar Circle */}
+              <motion.div
+                whileHover={{ rotate: 360 }}
+                transition={{ duration: 0.6 }}
+                className="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-indigo-500 to-blue-500 flex items-center justify-center text-white text-3xl font-bold shadow-lg"
+              >
+                VS
+              </motion.div>
+
+              {/* Name */}
+              <h3 className={`text-xl font-black mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                V S Kiran
+              </h3>
+
+              {/* Role */}
+              <p className={`text-sm font-semibold mb-4 ${
+                isDark ? 'text-indigo-300' : 'text-indigo-700'
+              }`}>
+                Frontend Developer
+              </p>
+
+              {/* LinkedIn Button */}
+              <motion.a
+                href="https://www.linkedin.com/in/vs-kiran-16b178394?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app"
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
+                  isDark
+                    ? 'bg-indigo-600/60 hover:bg-indigo-500 text-white'
+                    : 'bg-indigo-500/60 hover:bg-indigo-600 text-white'
+                }`}
+              >
+                <Linkedin size={16} />
+                LinkedIn
+              </motion.a>
+            </motion.div>
+          </div>
         </div>
       </section>
       
