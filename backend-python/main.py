@@ -1,4 +1,4 @@
-"""
+VITE_API_URL=https://simplified-backend-xxx.onrender.com/api"""
 FastAPI backend with Groq API integration for SimplifiED
 Processes lecture transcriptions using Groq LLM - Fast & Free
 """
@@ -33,6 +33,7 @@ allowed_origins = [
     "http://localhost:5173",
     "http://localhost:5174", 
     "http://localhost:5175",
+    "https://final-simplified-ed.vercel.app",  # Vercel production
     os.getenv("FRONTEND_URL", "http://localhost:5173")  # Add production frontend URL
 ]
 
