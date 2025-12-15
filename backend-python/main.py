@@ -29,18 +29,47 @@ GROQ_MODEL = "llama-3.3-70b-versatile"  # Using Llama 3.3 - latest & most capabl
 app = FastAPI(title="SimplifiED Backend")
 
 # Configure CORS
+allowed_origins = [
+    "http://localhost:5173",
+    "http://localhost:5174", 
+    "http://localhost:5175",
+    os.getenv("FRONTEND_URL", "http://localhost:5173")  # Add production frontend URL
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Initialize Firebase Admin SDK
-cred = credentials.Certificate("serviceAccountKey.json")
-firebase_admin.initialize_app(cred)
-db = firestore.client()
+try:
+    # Try loading from file first (local development)
+    if os.path.exists("serviceAccountKey.json"):
+        cred = credentials.Certificate("serviceAccountKey.json")
+    else:
+        # Load from environment variables (Render/production)
+        firebase_config = {
+            "type": "service_account",
+            "project_id": os.getenv("FIREBASE_PROJECT_ID"),
+            "private_key_id": os.getenv("FIREBASE_PRIVATE_KEY_ID", ""),
+            "private_key": os.getenv("FIREBASE_PRIVATE_KEY", "").replace('\\n', '\n'),
+            "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
+            "client_id": os.getenv("FIREBASE_CLIENT_ID", ""),
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+            "client_x509_cert_url": ""
+        }
+        cred = credentials.Certificate(firebase_config)
+    
+    firebase_admin.initialize_app(cred)
+    db = firestore.client()
+except Exception as e:
+    print(f"Firebase initialization error: {e}")
+    raise
 
 # Pydantic models
 class LectureCreate(BaseModel):
